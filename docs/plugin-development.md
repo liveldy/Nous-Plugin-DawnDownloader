@@ -24,6 +24,14 @@ Node.js 22+，无需安装 Nous，也无需导入宿主源码：
 node sdk/pack.mjs .
 ```
 
+独立预览（本机 Node HTTP 服务，默认端口 8088，可用 PORT 环境变量修改）：
+
+```sh
+node sdk/dev.mjs .
+```
+
+打开 http://127.0.0.1:8088，可切换平台与主题，修改资源后刷新。开发宿主明确标注模拟状态，仅模拟内存存储及“尚未安装”，不会执行原生安装、启动、剪贴板或外部网络操作；这些能力在真实客户端中完成集成验证。预览工具与宿主应用代码没有依赖。
+
 产物为 `dist/<id>-<version>.nous-plugin.json`，包含 UTF-8 文件映射和清单，不包含原生安装程序。将该文件上传到插件自己的 GitHub Release。原生依赖的安装包及其对应源码同样放在该插件 Release，不放在 Nous 服务器。SDK 打包器拒绝越界路径和符号链接。
 
 ## 清单
@@ -53,6 +61,8 @@ node sdk/pack.mjs .
 安装时校验签名目录给出的 SHA-256、平台与协议，展示全部权限并要求用户确认。安装记录和私有存储按当前账户保存在当前设备。升级保留私有存储；新增权限重新确认。停用立即拒绝后续能力调用并移除导航入口；卸载删除页面及私有配置。独立原生程序及其下载文件由原程序管理，不自动删除。
 
 宿主使用 `sandbox="allow-scripts"` 的不透明来源 iframe。页面不能访问父页面 DOM、Cookie、LocalStorage、宿主 JS 或其他插件。初始化通过 `postMessage` 传递上下文：
+
+正式宿主的固定 HTTP 装载页先完成 `frame.ready → render → rendered → init` 握手，再初始化 SDK。文档内容仍来自当前设备，服务器只返回通用装载器。HTTP 装载页及包内文档分别限制 CSP，避免 srcdoc 继承宿主严格脚本策略导致插件不执行；图片和字体只允许 data URL，网络与嵌套框架被禁止。每次装载都使用新 nonce。
 
 ```js
 const context = await NousPlugin.ready;
