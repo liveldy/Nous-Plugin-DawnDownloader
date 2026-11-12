@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1
+# 全能下载器 · Nous 插件 1.1.1
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -46,3 +46,5 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 插件和业务移植采用 AGPL-3.0，保留原作者版权与 LICENSE；SDK 为 MIT；IBM Plex Sans 为 OFL。完整修改源码、实际使用的上游源码和来源锁在本仓库及每次 Release 提供，第三方二进制的原许可证保留在 JAR/META-INF 和 runtime/legal 中。
 
 已验证 Windows 真正运行模块、十种网盘模块初始化、实际文件下载/暂停/重启恢复/SHA256/删除、不同账号隔离、设置保存、浏览器交互和三个屏幕宽度。Android 模块与宿主适配器通过构建和 lint；Android 实机行为及需要真实网盘账号的端到端登录/文件操作仍需在相应设备和账号验证。
+
+1.1.1 修复设置页的旧响应覆盖显示，以及目录选择与其他设置采用同一次保存。运行模块复用已校验的 1.1.0 组件。
