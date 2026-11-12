@@ -1,0 +1,72 @@
+{
+  "id": "app.nous.universal-downloader",
+  "name": "全能下载器",
+  "description": "直接使用 YunX 云析，处理网盘、视频与文件下载。链接从插件页面提交，下载由本机独立程序完成。",
+  "version": "1.0.0",
+  "api": "1.0",
+  "platforms": [
+    "windows-x64",
+    "android-arm64"
+  ],
+  "permissions": [
+    "storage",
+    "clipboard.write",
+    "external.open",
+    "native.application",
+    "native.bridge"
+  ],
+  "entry": "ui/index.html",
+  "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTQ2ZjgwIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgM3YxMm0tNS01IDUgNSA1LTVNNCAxNnY1aDE2di01Ii8+PC9zdmc+",
+  "repository": "liveldy/Nous-Plugin-YunX",
+  "license": "AGPL-3.0-only",
+  "native": {
+    "windows-x64": {
+      "version": "1.3.3",
+      "asset": {
+        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.0.0/YunX-Desktop-setup-1.3.3.exe",
+        "sha256": "ff2703eddaf2ec9538278a685b846489f57c7f18465d33274a4b1e276e880f28",
+        "bytes": 215383339
+      },
+      "directory": "YunX-Desktop",
+      "executable": "YunX-Desktop.exe",
+      "bridge": {
+        "ports": [
+          37021,
+          37022,
+          37023,
+          37024,
+          37025,
+          37026,
+          37027,
+          37028,
+          37029,
+          37030
+        ],
+        "app": "yunx",
+        "tokenHeader": "X-YunX-Token",
+        "routes": [
+          {
+            "name": "download",
+            "method": "POST",
+            "path": "/hook"
+          }
+        ]
+      }
+    },
+    "android-arm64": {
+      "version": "1.3.1",
+      "asset": {
+        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.0.0/YunX_release_1.3.1.apk",
+        "sha256": "5b729d97e3e038dcc1607c0be0594e2a932db1de52799f02b3bdf059c778a253",
+        "bytes": 6364017
+      },
+      "packageName": "com.yunx.app"
+    }
+  },
+  "resources": [
+    "ui/index.html",
+    "ui/style.css",
+    "ui/app.js",
+    "ui/nous-plugin.js"
+  ]
+}
