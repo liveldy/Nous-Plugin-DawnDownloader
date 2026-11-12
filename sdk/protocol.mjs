@@ -1,7 +1,7 @@
 // Nous Plugin Interface 1.0. MIT. No dependency on Nous application code.
-export const HOST_API='1.0';
+export const HOST_API='1.1';
 export const PLATFORMS=['windows-x64','android-arm64','web'];
-export const PERMISSIONS=['storage','clipboard.write','external.open','native.application','native.bridge'];
+export const PERMISSIONS=['storage','clipboard.write','external.open','native.application','native.bridge','native.runtime'];
 export function versionParts(value){if(!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(value||''))throw Error('版本号必须使用语义版本');return value.split('-')[0].split('.').map(Number);}
 export function compareVersions(a,b){const x=versionParts(a),y=versionParts(b);for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]-y[i];return 0;}
 export function validPath(path){return typeof path==='string'&&path.length>0&&path.length<220&&!path.includes('\\')&&!path.startsWith('/')&&!path.includes(':')&&path.split('/').every(p=>p&&p!=='.'&&p!=='..'&&!['__proto__','prototype','constructor'].includes(p));}
@@ -9,7 +9,8 @@ export function validateBundle(bundle,platform){
  if(!bundle||bundle.format!=='nous.plugin/v1'||!bundle.manifest||!bundle.files)throw Error('不是 Nous 插件包');
  const m=bundle.manifest;if(!/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+$/.test(m.id||'')||m.id.length>100)throw Error('插件标识无效');
  if(typeof m.name!=='string'||!m.name.trim()||m.name.length>60)throw Error('插件名称无效');versionParts(m.version);
- if(m.api!=='1.0')throw Error('插件协议版本不兼容');
+ if(!['1.0','1.1'].includes(m.api))throw Error('插件协议版本不兼容');
+ if(m.navigation!==undefined){if(!Array.isArray(m.navigation)||m.navigation.length<1||m.navigation.length>12)throw Error('插件菜单数量无效');const ids=new Set();for(const item of m.navigation){if(!/^[a-z][a-z0-9-]{0,39}$/.test(item.id||'')||ids.has(item.id)||typeof item.label!=='string'||!item.label.trim()||item.label.length>24)throw Error('插件菜单声明无效');ids.add(item.id);}if(m.defaultView&&!ids.has(m.defaultView))throw Error('插件默认页面未声明');}
  if(!Array.isArray(m.platforms)||!m.platforms.length||m.platforms.some(p=>!PLATFORMS.includes(p)))throw Error('插件平台声明无效');
  if(platform&&!m.platforms.includes(platform))throw Error('此插件不支持当前平台');
  if(!Array.isArray(m.permissions)||m.permissions.some(p=>!PERMISSIONS.includes(p)))throw Error('插件申请了未知权限');
@@ -18,6 +19,7 @@ export function validateBundle(bundle,platform){
  const names=Object.keys(bundle.files);if(names.length>256||!names.length)throw Error('插件文件数量无效');let bytes=0;
  for(const name of names){if(!validPath(name)||typeof bundle.files[name]!=='string')throw Error('插件包含无效文件路径');bytes+=new TextEncoder().encode(bundle.files[name]).length;}
  if(bytes>4*1024*1024)throw Error('插件界面资源最大 4 MB');if(!validPath(m.entry)||!Object.hasOwn(bundle.files,m.entry))throw Error('插件入口不存在');
+ if(m.runtime){if(!m.permissions.includes('native.runtime'))throw Error('运行模块须声明 native.runtime 权限');for(const [platform,spec] of Object.entries(m.runtime)){if(!m.platforms.includes(platform)||!['windows-x64','android-arm64'].includes(platform)||spec.type!==(platform==='windows-x64'?'jvm':'android-dex')||!/^([A-Za-z_$][\w$]*\.)+[A-Za-z_$][\w$]*$/.test(spec.entry||''))throw Error('插件运行模块声明无效');githubURL(spec.asset?.url,m.repository);if(!/^[a-f0-9]{64}$/.test(spec.asset?.sha256||'')||!Number.isSafeInteger(spec.asset?.bytes)||spec.asset.bytes<1||spec.asset.bytes>1024*1024*1024)throw Error('插件模块校验信息无效');}}
  if(m.native&&!m.permissions.includes('native.application'))throw Error('原生程序必须声明 native.application 权限');
  for(const [platform,spec] of Object.entries(m.native||{})){if(!m.platforms.includes(platform)||platform==='web')throw Error('原生程序平台声明无效');githubURL(spec.asset?.url,m.repository);if(!/^[a-f0-9]{64}$/.test(spec.asset?.sha256||'')||!Number.isSafeInteger(spec.asset?.bytes)||spec.asset.bytes<1||spec.asset.bytes>1024*1024*1024)throw Error('原生资源校验信息无效');if(platform==='windows-x64'&&(!/^[A-Za-z0-9._ -]{1,100}$/.test(spec.directory||'')||['.','..'].includes(spec.directory)||!/^[-A-Za-z0-9._ ]+\.exe$/i.test(spec.executable||'')))throw Error('Windows 原生路径无效');if(platform==='android-arm64'&&!/^[a-zA-Z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(spec.packageName||''))throw Error('Android 应用标识无效');if(spec.bridge){if(!m.permissions.includes('native.bridge')||platform!=='windows-x64'||!Array.isArray(spec.bridge.ports)||!spec.bridge.ports.length||spec.bridge.ports.length>16||spec.bridge.ports.some(n=>!Number.isInteger(n)||n<1024||n>65535))throw Error('本机接口声明无效');if(!/^[A-Za-z][A-Za-z0-9-]{0,70}$/.test(spec.bridge.tokenHeader||'X-Plugin-Token')||!Array.isArray(spec.bridge.routes)||spec.bridge.routes.some(r=>!/^\/[a-z0-9/-]*$/i.test(r.path)||r.method!=='POST'||!r.name))throw Error('本机接口路由无效');}}
  return bundle;

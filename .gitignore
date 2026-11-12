@@ -1,2 +1,10 @@
 dist/
+build-input/
+.gradle/
+**/build/
+**/local.properties
+*.jks
+*.keystore
 node_modules/
+vendor/
+vendor/

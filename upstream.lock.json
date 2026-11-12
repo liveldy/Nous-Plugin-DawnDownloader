@@ -18,5 +18,11 @@
     "source": "YunX-windows-v1.3.3-Source.tar.gz",
     "sourceSha256": "665d22997a5a957c375da02e4c66a46dd0bea57175b7ab5dea07027373df98f1",
     "license": "AGPL-3.0"
+  },
+  "desktopBuildInput": {
+    "url": "https://github.com/tidain/YunX-Desktop/releases/download/v1.3.3/YunX-Desktop-v1.3.3-win64-portable.zip",
+    "sha256": "f1bb11f1abb63779fc4b0751c79ecdc735a08059dbe49c551c10aaf81956e3c1",
+    "bytes": 220572999,
+    "usage": "Build input only; no upstream executable or installer is distributed by plugin 1.1."
   }
 }
