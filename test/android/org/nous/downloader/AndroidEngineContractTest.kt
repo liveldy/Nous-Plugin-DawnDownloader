@@ -41,6 +41,7 @@ class AndroidEngineContractTest {
   })
   try {
    val boot=core.execute("bootstrap",JSONObject()) as JSONObject
+   assertTrue(core.execute("settings.set",boot.getJSONObject("settings")) is JSONObject)
    val providers=boot.getJSONArray("providers")
    val names=mutableListOf("resolve","video")
    for(i in 0 until providers.length()){val id=providers.getJSONObject(i).getString("id");names.add("account:$id");names.add("cloud:$id")}
