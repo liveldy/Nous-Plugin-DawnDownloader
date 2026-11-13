@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1.3
+# 全能下载器 · Nous 插件 1.1.4
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -57,3 +57,5 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 桌面适配器中的 engine/desktop-kotlin/BaiduApi.kt 是对上游 API 的源码修订，在原始依赖前加载。构建脚本使用 kotlin-compiler.lock.json 锁定的 Kotlin 2.1.0 编译器，只用于构建，不加入运行模块。可复用 GRADLE_USER_HOME 下匹配摘要的缓存，缺失则从 Maven Central 获取并校验。JCEF原生资源仍来自已锁定的上游构建输入，插件在设备内自解压使用，不需要安装另一款应用。
 
 构建两个平台模块后，可运行 `python test/run-network.py`。它使用最终 Java17 模块中的真实 API 类与 Android 编译后的真实仓库字节码，验证短页分页、重复页、失败页、账户令牌隔离、无效凭证拒绝及目录引用往返。HTTP 响应是明确的测试夹具，不使用任何真实账户凭证。
+
+1.1.4 补齐账户下拉切换后的状态刷新，确保界面选中项和实际主账户一致。运行模块沿用已校验的 1.1.3 组件。
