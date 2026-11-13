@@ -1,0 +1,42 @@
+[
+  {
+    "group": "org.jetbrains.kotlin",
+    "artifact": "kotlin-compiler-embeddable",
+    "version": "2.1.0",
+    "file": "kotlin-compiler-embeddable-2.1.0.jar",
+    "sha256": "c1b139a6f251c3b99e92befa326cb75d93a001d74c3ac601155a8cdb0d253783",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.1.0/kotlin-compiler-embeddable-2.1.0.jar"
+  },
+  {
+    "group": "org.jetbrains.kotlin",
+    "artifact": "kotlin-script-runtime",
+    "version": "2.1.0",
+    "file": "kotlin-script-runtime-2.1.0.jar",
+    "sha256": "15a2b82119e9f145ea028029bd31166584648a419157c20948c124fa33d40e50",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/2.1.0/kotlin-script-runtime-2.1.0.jar"
+  },
+  {
+    "group": "org.jetbrains.kotlin",
+    "artifact": "kotlin-daemon-embeddable",
+    "version": "2.1.0",
+    "file": "kotlin-daemon-embeddable-2.1.0.jar",
+    "sha256": "6aa581bd53c3500e380e4bb6b2407f6d233910012f425349c2ed5a8ddbe29eac",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.1.0/kotlin-daemon-embeddable-2.1.0.jar"
+  },
+  {
+    "group": "org.jetbrains.kotlin",
+    "artifact": "kotlin-reflect",
+    "version": "1.6.10",
+    "file": "kotlin-reflect-1.6.10.jar",
+    "sha256": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar"
+  },
+  {
+    "group": "org.jetbrains.intellij.deps",
+    "artifact": "trove4j",
+    "version": "1.0.20200330",
+    "file": "trove4j-1.0.20200330.jar",
+    "sha256": "c5fd725bffab51846bf3c77db1383c60aaaebfe1b7fe2f00d23fe1b7df0a439d",
+    "url": "https://repo.maven.apache.org/maven2/org/jetbrains/intellij/deps/trove4j/1.0.20200330/trove4j-1.0.20200330.jar"
+  }
+]

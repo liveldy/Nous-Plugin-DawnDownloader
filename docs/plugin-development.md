@@ -145,3 +145,9 @@ context 提供模块资源、类加载器和当前账号的私有目录/偏好�
 `runtime.webLogin` 使用 `native.runtime` 授权，在独立官方 HTTPS 页面登录并返回 `{cookie}`。参数为 `{url, domains, cookieUrls, requiredCookies}`：domains 为最多10个域名；登录、跳转和 Cookie 读取 URL 必须属于这些域；requiredCookies 是关键字段组合数组，任一组合全部存在即返回。插件必须再调用对应平台接口验证凭证，验证成功才保存。不得记录凭证、上传宿主服务器或写入页面存储。UI 应提供手动凭证作为兼容方式，并声明 requiresHost 1.0.2。
 
 Windows 使用独立内存浏览会话，禁止 Node、宿主桥、下载与越域顶层跳转；窗口关闭即清除会话。Android 使用无宿主 JS 桥的专用 WebView，登录前后只清理所声明平台的 Cookie，不清理 Nous 登录或其他站点数据。不读取其他应用的私有凭证数据库。停用、卸载和关闭登录窗口会取消请求。SDK 登录等待上限15分钟，宿主登录窗口10分钟超时。
+
+## 登录会话就绪校验（Nous 1.0.3+）
+
+`runtime.webLogin` 可声明 `userAgent`，以及 `validation: {url, path, equals, nonEmpty?}`。校验 URL 必须是已声明域内 HTTPS；只执行 GET，最多64KB、8秒超时。JSON 的 path 值与 equals 相等，且可选 nonEmpty 路径为非空字符串时，才返回凭证并关闭窗口。临时Cookie已出现但校验未通过时保留窗口，等待完成官方登录；Cookie稳定后请求，失败至多每5秒重试。插件负责再次校验与保存，宿主不包含任何网盘地址或业务字段。
+
+Windows 从专用会话收集声明域 Cookie，包含带路径限制和HTTP-only的字段；Android 从插件声明的多个具体URL收集并在结束时过期对应域/路径Cookie。只采集当前官方登录会话，不读取其他应用私有数据。

@@ -12,7 +12,7 @@ import kotlin.coroutines.intrinsics.IntrinsicsKt;
 import kotlin.jvm.functions.*;
 
 public final class EngineCore {
- public interface Platform { Object context(); File root(); Object openFile(String path)throws Exception; Object chooseDirectory()throws Exception; }
+ public interface Platform { Object context(); File root(); Object openFile(String path)throws Exception; Object chooseDirectory()throws Exception; default void prepareVideo(String text)throws Exception{} }
  private final Platform platform;
  private final Map<Class<?>,Object> objects=new ConcurrentHashMap<>();
  private final Map<String,Object> models=new ConcurrentHashMap<>(), references=new ConcurrentHashMap<>();
@@ -114,9 +114,9 @@ public final class EngineCore {
   switch(method){
    case "bootstrap":{JSONArray providers=new JSONArray();for(String drive:drives.keySet())providers.put(new JSONObject().put("id",drive).put("name",labels.get(drive)).put("accounts",accounts(drive)).put("login",loginType(drive)));return new JSONObject().put("providers",providers).put("settings",settings()).put("downloads",downloads()).put("protocol","1.1");}
    case "vm.snapshot":return snapshot(model(p.getString("model")));
-   case "vm.call":{String name=p.getString("model"),kind=name.contains(":")?name.split(":")[0]:name,action=p.getString("action");if(!allowed.getOrDefault(kind,Collections.emptySet()).contains(action))throw new IOException("未声明的插件业务操作");Object m=model(name),result=call(m,action,p.optJSONArray("args")==null?new JSONArray():p.getJSONArray("args"));return new JSONObject().put("result",json(result,0)).put("state",snapshot(m));}
+   case "vm.call":{String name=p.getString("model"),kind=name.contains(":")?name.split(":")[0]:name,action=p.getString("action");if(!allowed.getOrDefault(kind,Collections.emptySet()).contains(action))throw new IOException("未声明的插件业务操作");if(name.equals("video")&&action.equals("resolve"))platform.prepareVideo(p.optJSONArray("args")==null?"":p.getJSONArray("args").optString(0));if(name.equals("account:baidu")&&(action.equals("saveBaiduAccount")||action.equals("logout"))){clearBaiduSession();if(action.equals("saveBaiduAccount")){Object token=call(get("com.yunx.app.data.network.BaiduApi"),"getBdstoken",new Object[]{p.getJSONArray("args").getString(0)});if(token==null||token.toString().isEmpty())throw new IOException("百度登录尚未完成或凭证已失效，请在官方网页完成登录后重试");}}Object m=model(name),result=call(m,action,p.optJSONArray("args")==null?new JSONArray():p.getJSONArray("args"));return new JSONObject().put("result",json(result,0)).put("state",snapshot(m));}
    case "accounts.list":return accounts(p.getString("provider"));
-   case "accounts.action":{String drive=p.getString("provider"),action=p.getString("action");if(!Arrays.asList("setPrimary","updateRemark","deleteById").contains(action))throw new IOException("未知账户操作");Object dao=get("com.yunx.app.data.db."+prefix(drive)+"AccountDao");JSONArray args=new JSONArray().put(p.getString("id"));if(action.equals("updateRemark"))args.put(p.optString("remark"));call(dao,action,args);return accounts(drive);}
+   case "accounts.action":{String drive=p.getString("provider"),action=p.getString("action");if(!Arrays.asList("setPrimary","updateRemark","deleteById").contains(action))throw new IOException("未知账户操作");if(drive.equals("baidu")&&!action.equals("updateRemark"))clearBaiduSession();Object dao=get("com.yunx.app.data.db."+prefix(drive)+"AccountDao");JSONArray args=new JSONArray().put(p.getString("id"));if(action.equals("updateRemark"))args.put(p.optString("remark"));call(dao,action,args);return accounts(drive);}
    case "settings.get":return settings();
    case "settings.set":{Object settings=get("com.yunx.app.data.prefs.SettingsRepository");for(Iterator<String> it=p.keys();it.hasNext();){String key=it.next();if(!properties.contains(key))throw new IOException("未知下载设置："+key);call(settings,"set"+capitalize(key),new JSONArray().put(p.get(key)));}try{call(get("com.yunx.app.data.network.HttpClients"),"setHttp2Enabled",new JSONArray().put(setting("http2Enabled",false)));}catch(Exception ignored){}return settings();}
    case "settings.directory":return platform.chooseDirectory();
@@ -133,6 +133,7 @@ public final class EngineCore {
    default:throw new IOException("未知插件引擎方法："+method);
   }
  }
+ private void clearBaiduSession()throws Exception{Object api=get("com.yunx.app.data.network.BaiduApi");try{call(api,"clearSessionCache",new JSONArray());}catch(NoSuchMethodException e){try{Field cache=api.getClass().getDeclaredField("cachedBdstoken");cache.setAccessible(true);cache.set(api,null);}catch(NoSuchFieldException ignored){}}}
  private String loginType(String p){return Arrays.asList("pan123","ilanzou","guangya").contains(p)?"password":p.equals("xunlei")?"both":"cookie";}
  private JSONArray accounts(String drive)throws Exception{
   Object dao=get("com.yunx.app.data.db."+prefix(drive)+"AccountDao");return (JSONArray)json(call(dao,"getAccounts",new JSONArray()),0);

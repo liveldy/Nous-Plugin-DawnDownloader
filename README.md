@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1.2
+# 全能下载器 · Nous 插件 1.1.3
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -15,7 +15,7 @@
 
 ## 平台与权限
 
-需要 Nous 1.0.2 / Plugin Interface 1.1。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
+需要 Nous 1.0.3 / Plugin Interface 1.1。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
 
 UI 在隔离 iframe 中，通过标准 SDK 请求插件自己的运行模块。本地模块属于可信代码，拥有 Nous 的设备权限；安装时需要显式授权。业务数据按 Nous 账户分开保存，网络跟随全局代理。退出 Nous 时桌面插件进程结束；正在下载的记录可在下次启动继续。卸载移除入口，保留本机下载文件和业务数据。
 
@@ -50,3 +50,10 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 
 
 1.1.2 修复 Android 迅雷仓库新增 `suspend (String) -> Account?` 回调的 Function2 适配。百度、夸克、UC、115、移动云盘提供官方网页登录自动取凭证，完成平台校验后仅保存到当前本机插件账户；原有手动方式继续保留。Nous 1.0.2 仅提供通用网页登录窗口及版本页面修复。
+
+
+1.1.3 修正真实 ShareFile 的 isdir/fsize 显示与目录操作，进入夸克链接指定的目录，修正 Android 的短页分页与重复页防护。桌面端按需初始化上游 JCEF，恢复抖音的浏览器取数路径。百度账户使用独立会话缓存并在保存前验证；桌面个人盘和转存目录查询也完整分页。新账户保存后立即选中，异步登录以真实新增/更新记录为准。
+
+桌面适配器中的 engine/desktop-kotlin/BaiduApi.kt 是对上游 API 的源码修订，在原始依赖前加载。构建脚本使用 kotlin-compiler.lock.json 锁定的 Kotlin 2.1.0 编译器，只用于构建，不加入运行模块。可复用 GRADLE_USER_HOME 下匹配摘要的缓存，缺失则从 Maven Central 获取并校验。JCEF原生资源仍来自已锁定的上游构建输入，插件在设备内自解压使用，不需要安装另一款应用。
+
+构建两个平台模块后，可运行 `python test/run-network.py`。它使用最终 Java17 模块中的真实 API 类与 Android 编译后的真实仓库字节码，验证短页分页、重复页、失败页、账户令牌隔离、无效凭证拒绝及目录引用往返。HTTP 响应是明确的测试夹具，不使用任何真实账户凭证。
