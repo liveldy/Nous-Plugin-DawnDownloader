@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1.1
+# 全能下载器 · Nous 插件 1.1.2
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -15,7 +15,7 @@
 
 ## 平台与权限
 
-需要 Nous 1.0.1 / Plugin Interface 1.1。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
+需要 Nous 1.0.2 / Plugin Interface 1.1。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
 
 UI 在隔离 iframe 中，通过标准 SDK 请求插件自己的运行模块。本地模块属于可信代码，拥有 Nous 的设备权限；安装时需要显式授权。业务数据按 Nous 账户分开保存，网络跟随全局代理。退出 Nous 时桌面插件进程结束；正在下载的记录可在下次启动继续。卸载移除入口，保留本机下载文件和业务数据。
 
@@ -24,7 +24,6 @@ UI 在隔离 iframe 中，通过标准 SDK 请求插件自己的运行模块。�
 Node.js 22+、Python 3.11+、JDK17+。Windows 构建输入是来源锁中精确校验的上游发行 JAR/JVM；完整对应源码包含在源代码发行包；Git 仓库通过 prepare-vendor.py 恢复 vendor，再应用可审核的 vendor-overrides。原版便携包只是可复现的构建输入，不作为本插件发行物。
 
 ```powershell
-python prepare-vendor.py
 python prepare-vendor.py
 python fetch-desktop-input.py
 $env:YUNX_BUILD_INPUT = (Resolve-Path build-input).Path
@@ -47,4 +46,7 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 
 已验证 Windows 真正运行模块、十种网盘模块初始化、实际文件下载/暂停/重启恢复/SHA256/删除、不同账号隔离、设置保存、浏览器交互和三个屏幕宽度。Android 模块与宿主适配器通过构建和 lint；Android 实机行为及需要真实网盘账号的端到端登录/文件操作仍需在相应设备和账号验证。
 
-1.1.1 修复设置页的旧响应覆盖显示，以及目录选择与其他设置采用同一次保存。运行模块复用已校验的 1.1.0 组件。
+1.1.1 修复设置页的旧响应覆盖显示，以及目录选择与其他设置采用同一次保存。
+
+
+1.1.2 修复 Android 迅雷仓库新增 `suspend (String) -> Account?` 回调的 Function2 适配。百度、夸克、UC、115、移动云盘提供官方网页登录自动取凭证，完成平台校验后仅保存到当前本机插件账户；原有手动方式继续保留。Nous 1.0.2 仅提供通用网页登录窗口及版本页面修复。

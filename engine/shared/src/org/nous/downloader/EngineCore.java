@@ -58,7 +58,7 @@ public final class EngineCore {
   Class<?>[] ts=constructor.getParameterTypes();Object[] args=new Object[ts.length];boolean defaults=ts.length>original;
   for(int i=0;i<original;i++){
    Class<?> t=ts[i];Object function=function(type.getSimpleName(),model,i,t);
-   if(function!=null){args[i]=function;continue;}
+   if(function!=null){if(!t.isInstance(function))throw new IOException("业务回调类型不兼容："+type.getSimpleName()+" #"+i+" 需要 "+t.getSimpleName());args[i]=function;continue;}
    if(t.getName().startsWith("kotlin.jvm.functions.")){args[i]=null;if(defaults)setMask(args,original,i);else throw new IOException("缺少业务回调："+type.getSimpleName()+" #"+i);}
    else if(t.isPrimitive()||t==String.class){args[i]=zero(t);if(defaults)setMask(args,original,i);}
    else args[i]=get(t);
@@ -70,7 +70,8 @@ public final class EngineCore {
   if(!parameter.getName().startsWith("kotlin.jvm.functions."))return null;
   if(type.equals("ChunkDownloader"))return (Function0<Object>)()->uncheckedGet("com.yunx.app.data.network.HttpClients","downloadClient");
   if(type.equals("VideoParseRepository"))return (Function0<Object>)()->uncheckedGet("com.yunx.app.data.network.HttpClients","apiClient");
-  if(type.equals("XunleiResolveRepository")||type.equals("XunleiCloudViewModel"))return (Function1<Object,Object>)(continuation)->{try{if(index==4&&type.equals("XunleiResolveRepository"))return refreshXunlei();return accountField("xunlei",index==1?"accessToken":index==2?"deviceId":"captchaToken");}catch(Exception e){throw new RuntimeException(e);}};
+  if(type.equals("XunleiResolveRepository")&&parameter==Function2.class)return (Function2<String,Object,Object>)(token,continuation)->{try{for(Object account:(Iterable<?>)call(get("com.yunx.app.data.repository.XunleiAccountRepository"),"getAccounts",new JSONArray()))if(Objects.equals(token,call(account,"getAccessToken",new JSONArray())))return account;return null;}catch(Exception e){throw new RuntimeException(e);}};
+  if((type.equals("XunleiResolveRepository")||type.equals("XunleiCloudViewModel"))&&parameter==Function1.class)return (Function1<Object,Object>)(continuation)->{try{if(index==4&&type.equals("XunleiResolveRepository"))return refreshXunlei();return accountField("xunlei",index==1?"accessToken":index==2?"deviceId":"captchaToken");}catch(Exception e){throw new RuntimeException(e);}};
   if(type.equals("Pan123ResolveRepository")||type.equals("GuangYaResolveRepository"))return (Function1<Object,Object>)(continuation)->{try{return credential(type.startsWith("Pan123")?"pan123":"guangya");}catch(Exception e){throw new RuntimeException(e);}};
   if(type.equals("ResolveViewModel")&&parameter.getSimpleName().equals("Function0")){if(index==24)return (Function0<String>)()->String.valueOf(setting("githubMirrorPrefix",""));if(index==25)return (Function0<Boolean>)()->(Boolean)setting("quarkNoSaveDownload",true);if(index==26)return (Function0<Boolean>)()->(Boolean)setting("multiAccountDownload",false);if(index==27)return (Function0<Boolean>)()->(Boolean)setting("multiSourceDownload",false);}
   if(type.endsWith("CloudViewModel")||type.endsWith("CoudViewModel")){
