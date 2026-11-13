@@ -1,4 +1,4 @@
-# Nous Plugin Interface 1.2 · 方法参考
+# Nous Plugin Interface 1.3 · 方法参考
 
 与sdk/contract.mjs生成自同一方法清单。参数和结果均为JSON。权限未授予、平台不支持或宿主版本不足时，不应显示对应操作。`since`为最低客户端产品版本，`version`为方法合同版本。
 

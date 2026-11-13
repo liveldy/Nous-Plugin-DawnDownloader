@@ -1,6 +1,6 @@
-# Nous Plugin SDK 1.2.0 · MIT
+# Nous Plugin SDK 1.3.0 · MIT
 
-公开SDK不依赖Nous主程序或破晓下载器。需要Node.js22+；原生示例另需JDK17+、Python3.11+，Android另需SDK35和Gradle8.11.1。使用正式Nous1.1.0或更新客户端进行原生集成测试。
+公开SDK不依赖Nous主程序或破晓下载器。需要Node.js22+；原生示例另需JDK17+、Python3.11+，Android另需SDK35和Gradle8.11.1。使用正式Nous1.2.0或更新客户端进行原生集成测试。
 
 ```sh
 node sdk/create.mjs --template notes my-notes

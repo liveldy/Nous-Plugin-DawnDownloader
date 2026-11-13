@@ -1,7 +1,7 @@
-// Nous Plugin Interface 1.2. MIT. No dependency on Nous application code.
+// Nous Plugin Interface 1.3. MIT. No dependency on Nous application code.
 import {checkJSON} from './contract.mjs';
 import manifestSchema from './manifest-schema.mjs';
-export const HOST_API='1.2';
+export const HOST_API='1.3';
 export const PLATFORMS=['windows-x64','android-arm64','web'];
 export const PERMISSIONS=['storage','clipboard.write','external.open','native.application','native.bridge','native.runtime','auth.external'];
 function semanticVersion(value){const match=typeof value==='string'&&value.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/);if(!match)throw Error('版本号必须使用语义版本');const numbers=match.slice(1,4).map(Number),pre=match[4]?.split('.')||[];if(numbers.some(n=>!Number.isSafeInteger(n))||pre.some(s=>/^\d+$/.test(s)&&s.length>1&&s[0]==='0'))throw Error('版本号必须使用语义版本');return{numbers,pre};}
@@ -10,12 +10,15 @@ export function compareVersions(a,b){const x=semanticVersion(a),y=semanticVersio
 export function validPath(path){return typeof path==='string'&&path.length>0&&path.length<220&&!path.includes('\\')&&!path.startsWith('/')&&!path.includes(':')&&path.split('/').every(p=>p&&p!=='.'&&p!=='..'&&!['__proto__','prototype','constructor'].includes(p));}
 export function validateBundle(bundle,platform){
  if(!bundle||bundle.format!=='nous.plugin/v1'||!bundle.manifest||!bundle.files)throw Error('不是 Nous 插件包');
- const m=bundle.manifest;if(m.api==='1.2')checkJSON(m,manifestSchema);if(!/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+$/.test(m.id||'')||m.id.length>100)throw Error('插件标识无效');
+ const m=bundle.manifest;if(m.api==='1.2'||m.api==='1.3')checkJSON(m,manifestSchema);if(!/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+$/.test(m.id||'')||m.id.length>100)throw Error('插件标识无效');
+ for(const field of ['author','changelog','description'])if(m[field]!==undefined)checkJSON(m[field],manifestSchema.properties[field]);
  if(typeof m.name!=='string'||!m.name.trim()||m.name.length>60)throw Error('插件名称无效');versionParts(m.version);
- if(!['1.0','1.1','1.2'].includes(m.api))throw Error('插件协议版本不兼容');
+ if(!['1.0','1.1','1.2','1.3'].includes(m.api))throw Error('插件协议版本不兼容');
  if(m.requiresHost!==undefined){versionParts(m.requiresHost);if(!/^(0|[1-9]\d*)[.](0|[1-9]\d*)[.](0|[1-9]\d*)$/.test(m.requiresHost))throw Error('最低宿主版本需使用稳定版本号');}
  for(const field of ['requiredMethods','optionalMethods'])if(m[field]!==undefined&&(!Array.isArray(m[field])||m[field].length>32||m[field].some(v=>typeof v!=='string'||!/^[-a-zA-Z0-9.]{1,100}$/.test(v))||new Set(m[field]).size!==m[field].length))throw Error('插件方法需求声明无效');
+ if(m.api==='1.3'&&(!m.author?.name?.trim()||!m.requiresHost||compareVersions(m.requiresHost,'1.2.0')<0))throw Error('协议1.3需要作者信息和Nous1.2.0及以上');
  if(m.api==='1.2'&&(!m.requiresHost||compareVersions(m.requiresHost,'1.1.0')<0))throw Error('协议1.2需要Nous1.1.0及以上');
+ if(m.changelog!==undefined){const seen=new Set();for(const release of m.changelog){versionParts(release.version);if(seen.has(release.version)||compareVersions(release.version,m.version)>0||!Number.isFinite(Date.parse(release.publishedAt)))throw Error('插件版本记录包含重复、未来版本或无效日期');seen.add(release.version);}}
  if(m.navigation!==undefined){if(!Array.isArray(m.navigation)||m.navigation.length<1||m.navigation.length>12)throw Error('插件菜单数量无效');const ids=new Set();for(const item of m.navigation){if(!/^[a-z][a-z0-9-]{0,39}$/.test(item.id||'')||ids.has(item.id)||typeof item.label!=='string'||!item.label.trim()||item.label.length>24)throw Error('插件菜单声明无效');ids.add(item.id);}if(m.defaultView&&!ids.has(m.defaultView))throw Error('插件默认页面未声明');}
  if(!Array.isArray(m.platforms)||!m.platforms.length||m.platforms.some(p=>!PLATFORMS.includes(p)))throw Error('插件平台声明无效');
  if(platform&&!m.platforms.includes(platform))throw Error('此插件不支持当前平台');

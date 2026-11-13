@@ -1,4 +1,4 @@
-# 破晓下载器（DawnDownloader）· Nous 插件 1.2.0
+# 破晓下载器（DawnDownloader）· Nous 插件 1.2.1
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -15,7 +15,7 @@
 
 ## 平台与权限
 
-需要 Nous 1.1.0 / Plugin Interface 1.2。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
+需要 Nous 1.2.0 / Plugin Interface 1.3。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
 
 UI 在隔离 iframe 中，通过标准 SDK 请求插件自己的运行模块。本地模块属于可信代码，拥有 Nous 的设备权限；安装时需要显式授权。业务数据按 Nous 账户分开保存，网络跟随全局代理。退出 Nous 时桌面插件进程结束；正在下载的记录可在下次启动继续。卸载移除入口，保留本机下载文件和业务数据。
 
@@ -75,3 +75,7 @@ Android 业务回归使用实际 Android 类与 Robolectric API35，独立于桌
 内置登录按设备选择页面；Android使用原生移动UA和手机宽度，百度API校验UA与网页登录分开。外部默认浏览器登录只对已实现、已验证自动授权回传及凭证交换的供应商/平台显示；现有内置Cookie适配尚未提供经过验证的外部授权通道，因此不显示这些供应商的外部入口，不提供手动复制作为外部登录回退。通用宿主的PKCE授权接口供真正支持该流程的插件使用。
 
 本次不修改网盘/视频业务引擎，平台模块固定复用1.1.5的不可变GitHub资源及摘要。插件页面、文档和名称独立更新。
+
+## 1.2.1 元信息与独立历史
+
+增加author和changelog；插件版本记录由发行包自身提供，在插件管理中查看。商城审核在Nous站内提交，官方标签由管理员管理；本地安装始终为非官方。运行模块和账号业务不变。
