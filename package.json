@@ -1,6 +1,6 @@
 {
-  "name": "nous-universal-downloader-plugin",
-  "version": "1.1.5",
+  "name": "nous-dawn-downloader",
+  "version": "1.2.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {

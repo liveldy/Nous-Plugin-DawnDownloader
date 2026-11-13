@@ -1,4 +1,10 @@
-export interface PluginManifest {id:string;name:string;version:string;api:string;description:string;platforms:string[];permissions:string[];entry:string;icon?:string;repository:string;license:string;native?:Record<string,any>;runtime?:Record<string,any>;navigation?:{id:string;label:string;icon?:string}[];defaultView?:string;requiresHost?:string;}
+export type PluginPlatform='windows-x64'|'android-arm64'|'web';
+export type PluginApi='1.0'|'1.1'|'1.2';
+export type Permission='storage'|'clipboard.write'|'external.open'|'native.runtime'|'auth.external'|'native.application'|'native.bridge';
+export interface ReleaseAsset{url:string;sha256:string;bytes:number}
+export interface JvmRuntime{type:'jvm';entry:string;mainJar?:string;asset:ReleaseAsset}
+export interface DexRuntime{type:'android-dex';entry:string;minSdk?:number;asset:ReleaseAsset}
+export interface PluginManifest {id:string;name:string;version:string;api:PluginApi;description:string;platforms:PluginPlatform[];permissions:Permission[];entry:string;icon?:string;repository:string;license:string;native?:Record<string,any>;runtime?:{'windows-x64'?:JvmRuntime;'android-arm64'?:DexRuntime};navigation?:{id:string;label:string;icon?:string}[];defaultView?:string;requiresHost?:string;requiredMethods?:string[];optionalMethods?:string[];}
 export interface PluginBundle {format:'nous.plugin/v1';manifest:PluginManifest;files:Record<string,string>}
 export const HOST_API:string;export const PLATFORMS:string[];export const PERMISSIONS:string[];
 export function versionParts(value:string):number[];export function compareVersions(a:string,b:string):number;

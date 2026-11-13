@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1.5
+# 破晓下载器（DawnDownloader）· Nous 插件 1.2.0
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -15,7 +15,7 @@
 
 ## 平台与权限
 
-需要 Nous 1.0.3 / Plugin Interface 1.1。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
+需要 Nous 1.1.0 / Plugin Interface 1.2。支持 Windows x64、Android ARM64（Android 11+）；网页不运行原生插件。Windows 模块包含自己的 JVM，Android 模块是宿主加载的 Dex/资源，不需要系统安装应用。
 
 UI 在隔离 iframe 中，通过标准 SDK 请求插件自己的运行模块。本地模块属于可信代码，拥有 Nous 的设备权限；安装时需要显式授权。业务数据按 Nous 账户分开保存，网络跟随全局代理。退出 Nous 时桌面插件进程结束；正在下载的记录可在下次启动继续。卸载移除入口，保留本机下载文件和业务数据。
 
@@ -66,3 +66,12 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 Android 视频使用上游 ResolveViewModel 的 startVideoResolve，独立保存网盘与视频状态，统一输出视频结果格式；下载直接调用 Android DownloadManager，保留音轨、请求头与动态照片参数。修正 Android 解析设置回调位置、视频错误重试页面和插件停用时的 ViewModel 协程清理。Windows 保持原视频模型与 JCEF 流程。
 
 Android 业务回归使用实际 Android 类与 Robolectric API35，独立于桌面实现；命令：在 vendor/android 下运行 gradle testReleaseUnitTest --tests org.nous.downloader.AndroidEngineContractTest。测试仅依赖模拟 Android 系统、人工网络响应，不代表实机验证。需要 Nous 1.0.3 及以上；建议 1.0.4，以正确识别本机版本并阻止旧客户端调用不支持的方法。
+
+
+## 1.2.0 登录与协议
+
+产品名称为破晓下载器（DawnDownloader）。保留插件ID和本机数据目录，更新不清空账号、设置或下载记录。需要Nous1.1.0 / Plugin Interface1.2，安装前验证协议兼容列表及必需方法。
+
+内置登录按设备选择页面；Android使用原生移动UA和手机宽度，百度API校验UA与网页登录分开。外部默认浏览器登录只对已实现、已验证自动授权回传及凭证交换的供应商/平台显示；现有内置Cookie适配尚未提供经过验证的外部授权通道，因此不显示这些供应商的外部入口，不提供手动复制作为外部登录回退。通用宿主的PKCE授权接口供真正支持该流程的插件使用。
+
+本次不修改网盘/视频业务引擎，平台模块固定复用1.1.5的不可变GitHub资源及摘要。插件页面、文档和名称独立更新。

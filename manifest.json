@@ -1,9 +1,9 @@
 {
   "id": "app.nous.universal-downloader",
-  "name": "全能下载器",
-  "description": "在 Nous 内解析网盘分享、管理网盘文件与下载任务。",
-  "version": "1.1.5",
-  "api": "1.1",
+  "name": "破晓下载器",
+  "description": "DawnDownloader：在 Nous 内解析分享、管理网盘文件与下载任务。",
+  "version": "1.2.0",
+  "api": "1.2",
   "platforms": [
     "windows-x64",
     "android-arm64"
@@ -23,9 +23,10 @@
     "ui/style.css",
     "ui/app.js",
     "ui/nous-plugin.js",
-    "ui/file-model.js"
+    "ui/file-model.js",
+    "ui/login-policy.js"
   ],
-  "requiresHost": "1.0.3",
+  "requiresHost": "1.1.0",
   "navigation": [
     {
       "id": "parse",
@@ -69,5 +70,15 @@
         "bytes": 22096018
       }
     }
-  }
+  },
+  "requiredMethods": [
+    "runtime.start",
+    "runtime.invoke",
+    "runtime.webLogin"
+  ],
+  "optionalMethods": [
+    "auth.external.begin",
+    "auth.external.status",
+    "auth.external.cancel"
+  ]
 }

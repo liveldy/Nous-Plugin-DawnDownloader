@@ -1,153 +1,206 @@
-# Nous Plugin Interface 1.1
+# Nous Plugin Interface 1.2
 
-插件拥有独立仓库、代码、版本、页面和 Release。Nous 只实现通用安装、导航、权限和运行模块适配器，四个核心模块不导入插件业务代码。全能下载器是一个插件；其模块随插件自动校验和加载，不是额外安装的应用。
+这份文档和公开 SDK 是插件与 Nous 之间的合同。开发者无需主程序源码，也无需参考破晓下载器。SDK、两个完整示例、类型定义、JSON Schema和检查工具均以MIT许可提供；插件自行决定其业务实现和许可。下载器的网盘、视频模型及账号逻辑不属于宿主协议。
 
-## 工程与发布
+## 从空目录开始
 
-```text
-manifest.json
-ui/index.html
-ui/style.css
-ui/app.js
-ui/nous-plugin.js
-sdk/protocol.mjs
-sdk/pack.mjs
-sdk/dev.mjs
-engine/                 # 可选：插件自己的原生模块源码
-vendor/                 # 实际复用的上游源码及许可证
-LICENSE
-README.md
-```
-
-SDK 使用 MIT 许可。插件根据实际依赖的许可证独立发布；全能下载器使用 AGPL-3.0，完整修改及对应上游源代码在其独立仓库和 Release 提供。不得将私有签名密钥、账号、令牌或宿主源码打进插件。
+安装 Node.js 22+，下载 [SDK 1.2.0](https://github.com/liveldy/Nous/releases/download/v1.1.0/Nous-Plugin-SDK-1.2.0.zip) 并解压。以下命令从解压目录运行：
 
 ```sh
-node sdk/pack.mjs .
-node sdk/dev.mjs .
+node sdk/create.mjs --template notes my-notes
+node my-notes/sdk/dev.mjs my-notes
 ```
 
-打包器生成 `dist/<id>-<version>.nous-plugin.json`。开发预览是明确标记的模拟宿主，不执行原生模块；模块必须在客户端进行集成测试。需要执行本地业务时，另行提供清单中声明的 `.module.zip`，与页面包一起上传到插件自己的 GitHub Release。它是插件资源，不能启动系统安装器、创建桌面快捷方式或要求用户额外安装一个程序。
+浏览器打开 `http://127.0.0.1:8088/`，新增、完成、删除清单，切换设置和深色主题。这个模拟宿主提供存储与导航，明确拒绝系统操作，不会伪造原生执行成功。
 
-发布流程：构建模块 → 计算模块 SHA256 与字节数 → 填入 manifest → 打包页面 → 计算页面包 SHA256 → 上传独立 Release → 更新宿主签名插件目录。模块地址必须指向 manifest.repository 对应的 GitHub Release。应用服务器不保存插件或客户端二进制。
+```sh
+node my-notes/sdk/check.mjs my-notes
+node my-notes/sdk/pack.mjs my-notes
+```
 
-## 清单
+输出 `my-notes/dist/org.example.notes.dev-1.0.0.nous-plugin.json`。修改自己的命名空间、名称、仓库、许可和版本后才用于正式发布。工程只含自己的UI、公开SDK和可选的原生模块。
+
+## 在发布版客户端测试
+
+安装 [Nous 1.1.0或更新版本](https://github.com/liveldy/Nous/releases)，登录后打开 **插件管理 → 开发插件 → 本机开发测试**。
+
+1. 启用当前账户的本机开发模式。
+2. 保持 `node sdk/dev.mjs 工程路径` 运行，填写 `http://127.0.0.1:8088/` 并读取开发插件。
+3. 核对插件名称、平台与权限后安装。侧栏出现插件入口，可使用真实宿主接口。
+4. 修改代码后重新读取、安装开发版。更新保留该账户插件数据。
+
+Android 通过USB连接开发电脑，运行 `adb reverse tcp:8088 tcp:8088`，手机内使用同一地址。可用 `adb devices` 检查连接。开发服务器只绑定回环地址，不需要开放公网端口、上传私有代码或安装主程序开发环境。关闭开发模式会停止开发插件并拒绝执行。开发ID使用`.dev`后缀，不能覆盖同ID的正式插件。
+
+开发模式绕过正式发布目录签名，因此只运行自己信任的代码；原生代码可访问设备文件与网络。正式安装不允许使用本地HTTP源。
+
+## 原生插件：独立构建示例
+
+```sh
+node sdk/create.mjs --template native-text my-text
+```
+
+`my-text/README.md`列出完整构建步骤。Windows在Windows电脑上使用JDK17+、Python3.11+执行 `python build.py windows`，生成包含独立Java运行时的模块ZIP。Android安装SDK35、Gradle8.11.1，设置 `JAVA_HOME`、`ANDROID_HOME`、`GRADLE`，执行 `python build.py android`。
+
+```sh
+node my-text/sdk/dev.mjs my-text --module windows-x64=my-text/dist/windows.module.zip --module android-arm64=my-text/dist/android.module.zip
+```
+
+未构建的平台可省略其`--module`参数，但不能在对应客户端启动。开发服务器根据显式指定的ZIP计算真实摘要与大小，客户端仍执行校验。文本示例在Windows JVM和Android Dex中分别统计Unicode字符、空白分隔词组及SHA-256，没有下载器依赖。
+
+## 协议版本与安装门禁
+
+`manifest.api`是插件遵守的协议版本；`manifest.version`是插件自己的产品版本；`requiresHost`是最低客户端版本。三者不能互相替代。
+
+| 客户端 | 当前宿主协议 | 明确兼容的插件协议 |
+| --- | --- | --- |
+| Nous 1.1.0 | 1.2 | 1.0、1.1、1.2 |
+| 早期客户端 | 以该客户端实现为准 | 不推断支持新协议 |
+
+安装时必须满足：插件协议在宿主`supportedApis`内；最低客户端版本满足；当前平台已声明；全部必需权限获授；`requiredMethods`全部可用。任一不满足都拒绝安装，下载和执行原生代码之前完成检查。原生安装端再次验证，不能仅依赖UI。打开已安装插件时重复协商，失败不创建运行页面。
+
+宿主1.2接受1.1是显式提供兼容适配，并非忽略版本差异；未公布的1.3、2.0等一律拒绝。不自动降级插件协议、不猜测方法存在。`hostVersion`在原生端来自本机安装版本，不能来自在线页面、插件版本或服务器版本。
+
+新增可选方法保持现有行为，使用能力查询；改变已有参数、返回语义、权限或生命周期必须发布新的协议主版本，或增加新方法。移除旧协议必须从兼容列表移除，并在发布记录说明。插件只把确实不可缺少的方法放在`requiredMethods`；可选能力列入`optionalMethods`并使用`supports()`判断。
+
+## 清单与文件格式
+
+完整定义见[manifest JSON Schema](../sdk/schema/manifest.schema.json)、[类型定义](../sdk/protocol.d.mts)和两个[公开示例](../sdk/examples)。
 
 ```json
 {
-  "id": "org.example.files",
-  "name": "文件工具",
-  "version": "1.1.0",
-  "api": "1.1",
-  "requiresHost": "1.0.1",
-  "description": "在当前设备处理文件。",
-  "repository": "example/files-plugin",
-  "license": "MIT",
-  "platforms": ["windows-x64", "android-arm64"],
-  "permissions": ["storage", "native.runtime"],
-  "entry": "ui/index.html",
-  "navigation": [
-    {"id":"files", "label":"文件", "icon":"home"},
-    {"id":"settings", "label":"设置", "icon":"settings"}
-  ],
-  "defaultView": "files",
-  "resources": ["ui/index.html","ui/style.css","ui/app.js","ui/nous-plugin.js"],
-  "runtime": {
-    "windows-x64": {
-      "type":"jvm", "entry":"org.example.files.PluginMain",
-      "asset":{"url":"https://github.com/example/files-plugin/releases/download/v1.1.0/windows.module.zip","sha256":"实际的64位小写十六进制摘要","bytes":1234}
-    },
-    "android-arm64": {
-      "type":"android-dex", "entry":"org.example.files.AndroidPlugin", "minSdk":30,
-      "asset":{"url":"https://github.com/example/files-plugin/releases/download/v1.1.0/android.module.zip","sha256":"实际的64位小写十六进制摘要","bytes":1234}
-    }
-  }
+  "id":"org.example.notes.dev",
+  "name":"随手清单",
+  "version":"1.0.0",
+  "api":"1.2",
+  "requiresHost":"1.1.0",
+  "description":"按当前账户保存清单。",
+  "platforms":["web","windows-x64","android-arm64"],
+  "permissions":["storage"],
+  "entry":"ui/index.html",
+  "repository":"example-org/nous-notes",
+  "license":"MIT",
+  "navigation":[{"id":"notes","label":"清单","icon":"file-text"}],
+  "defaultView":"notes",
+  "requiredMethods":["storage.get","storage.set"],
+  "optionalMethods":[],
+  "resources":["ui/index.html","ui/style.css","ui/app.js","ui/nous-plugin.js"]
 }
 ```
 
-不需要原生执行能力的插件省略 runtime 与 native.runtime 权限，可支持 web。平台声明不代表支持所有系统版本；Android Dex 模块目前需要 Android 11 / API 30。网页不加载任何原生模块。
+ID小写命名空间、最长100字符；名称最长60字符；菜单1–12项，ID唯一、label最长24字符；`defaultView`必须已声明。导航是模块二级菜单，不重复Nous最左侧核心模块栏。
 
-id 带命名空间，仅小写字母、数字、点与连字符，最长100字符；名称最长60字符；version 使用语义版本。1.1 宿主兼容原有1.0页面插件，新模块插件声明1.1，旧宿主会明确拒绝。页面资源最多4MB、256文件，禁止绝对路径、反斜线、越界和符号链接。图标是小于64KB的 base64 PNG/WebP/SVG。
+包为UTF-8 JSON：`{format:'nous.plugin/v1',manifest,files}`。最多256资源，总计4MiB；`resources`只用于工程清单，打包后移除。脚本和样式读取UTF-8；PNG、JPEG、WebP、SVG、ICO、WOFF/WOFF2转为data URL，HTML图片和CSS资源路径在装载时内联。禁止绝对路径、符号链接越界、`..`逃逸、外部脚本与CDN。框架项目应先输出单一IIFE脚本及声明的本地资源；当前协议不提供任意动态模块导入或网络脚本加载。
 
-navigation 是1至12个二级菜单，不重复最左侧核心模块栏。每项 id 唯一，使用小写字母数字与连字符；label 最长24字符。defaultView 必须存在。宿主负责链接、选中状态和移动端菜单折叠；插件通过 context.view 和 navigation.changed 切换业务视图。插件管理的二级菜单只显示插件管理。
+## 页面API
 
-## 页面握手与消息
-
-页面使用 `sandbox="allow-scripts allow-forms"` 的不透明来源 iframe。宿主的通用装载页完成 `frame.ready → render → rendered → init`，每次装载生成新 nonce。校验 event.source、协议、nonce、插件启用状态和当前账号，不接受其他窗口的请求。
+在自己的HTML引入随包`nous-plugin.js`，TypeScript项目引用`nous-plugin.d.ts`。
 
 ```js
 const context = await NousPlugin.ready;
-// pluginId, platform, hostVersion, api, theme, locale, capabilities, view, navigation
-NousPlugin.on('navigation.changed', view => render(view));
-NousPlugin.on('theme.changed', theme => applyTheme(theme));
-await NousPlugin.request('navigation.go', {view:'settings'});
+// pluginId, platform, api(协商结果), hostApi, pluginApi, supportedApis,
+// hostVersion, theme, locale, view, navigation, permissions, methods, limits
+const saved = await NousPlugin.request('storage.get', {key:'notes'});
+if (NousPlugin.supports('clipboard.write')) {
+  await NousPlugin.request('clipboard.write', {text:'结果'});
+}
+const off = NousPlugin.on('navigation.changed', view => render(view));
+// 离开自己的视图时 off()
 ```
 
-请求为 `{protocol:'nous.plugin/1',kind:'request',nonce,id,method,params}`；结果为同一协议、nonce、id、`kind:'result'`，以及 value 或 error:{code,message}。SDK 管理请求编号、超时和 Promise。事件使用 kind:'event'、event、value。
+公开方法的逐项参数/结果Schema、平台、权限、首次支持版本和超时，见[机器合同](../sdk/contract.json)与[方法参考](plugin-api-reference.md)。这是统一来源，宿主与SDK检查不能各自发明同名方法。
 
-allow-forms 只让插件表单触发本地验证和 submit 事件；CSP 的 form-action none 仍禁止网络表单提交，也不授予同源权限。页面禁止直接网络、动态脚本、CDN、远程图片及嵌套框架。脚本、样式、字体和图像需随页面包提供。宿主不将模型密钥、会话或内部数据库传进页面。
+| 权限 | 范围 |
+| --- | --- |
+| storage | 当前账户/插件的JSON存储，最多64KiB |
+| clipboard.write | 显式复制文本，最多30000字符；不读取剪贴板 |
+| external.open | 在系统打开HTTPS链接；不返回网页登录凭证 |
+| native.runtime | 加载可信本机代码、内置官方登录窗口；具备Nous本身的设备权限 |
+| auth.external | 在默认浏览器启动标准授权并接收本机回调，不读取浏览器Cookie |
 
-## 权限与方法
+`native.application/native.bridge`仅为旧1.0兼容保留，新插件应使用runtime模块。网页平台不提供原生执行、内置原生登录或外部本机授权回调。网页网络请求也不能通过插件iframe绕过CSP；需要网络/文件业务的插件在其原生模块中实现。
 
-| 权限 | 方法 | 参数与结果 |
-| --- | --- | --- |
-| 无 | host.info | 当前平台、宿主版本、协议和主题 |
-| 无 | navigation.go | {view}，仅允许已声明菜单 |
-| storage | storage.get/set/remove | {key,value?}，当前账号和插件私有；64KB上限 |
-| clipboard.write | clipboard.write | {text}，最多30000字符 |
-| external.open | external.open | {url}，仅 HTTPS |
-| native.runtime | runtime.status | {installed,ready,running} |
-| native.runtime | runtime.start | 校验并启动当前平台模块 |
-| native.runtime | runtime.invoke | {method,params}，调用插件自己的业务方法 |
-| native.runtime | runtime.stop | 停止当前账号的当前插件任务 |
+## 消息、错误、超时和取消
 
-**native.runtime 是可信本地代码权限**，拥有与 Nous 相同的设备权限，可访问文件与网络。iframe 隔离不构成本地代码的安全沙箱。安装窗口必须明确说明这一点并让用户选择授权；只安装信任来源的插件。原有 native.application/native.bridge 仅为1.0兼容保留，全能下载器1.1不申请也不调用它们。
+页面运行在不透明来源的iframe，`sandbox="allow-scripts allow-forms"`。脚本/样式/图片随包提供，禁止直接网络、嵌套iframe和网络表单提交。握手为`frame.ready → render → rendered → init`，插件使用SDK无需手写。每次装载生成nonce；宿主验证窗口来源、协议、nonce、启用状态及当前账户。
 
-安装时校验签名目录、页面摘要、平台、权限，以及模块的摘要和大小。模块只在本机插件目录解压，拒绝越界条目和符号链接。先完成模块校验，再保存安装记录。更新保留账号私有数据；新增权限重新授权。停用和卸载先停止模块，后续调用立即拒绝。卸载移除入口和页面存储，保留本机业务数据与下载文件，供重新安装恢复。
+请求：`{protocol:'nous.plugin/1',kind:'request',nonce,id,method,params}`。结果携带相同nonce/id、`kind:'result'`，且只含value或error之一。事件：`{kind:'event',event,value,...}`。保留事件为`navigation.changed`、`theme.changed`。应用切换账户或卸载页面后，旧请求结果不得投递到新页面。
 
-## Windows JVM 模块
+每次请求最大1MiB，结果最大4MiB，同时最多32个未完成请求；JSON最多32层，不接受函数、循环对象或保留属性名。默认超时见合同，可用`{timeoutMs}`在100–900000毫秒内指定。SDK超时或AbortSignal取消后发送取消通知并忽略迟到结果。**通用取消只取消等待，不回滚已经发生的业务修改，也不承诺中断原生代码**；业务取消应由插件自己的runtime方法实现。内置登录另有`runtime.webLogin.cancel`，外部授权另有`auth.external.cancel`。
 
-```text
-app/Nous-Engine.jar
-app/*.jar
-runtime/bin/java.exe
-runtime/...             # 模块自己的完整 JVM
+```js
+const controller = new AbortController();
+try {
+  await NousPlugin.request('runtime.invoke',
+    {method:'text.inspect',params:{text:'hello'}},
+    {signal:controller.signal,timeoutMs:30000});
+} catch (error) {
+  if (error.code === 'E_CANCELLED') return;
+  showError(error.message);
+}
 ```
 
-宿主在插件目录启动无窗口子进程。命令由适配器固定，不接受插件页面提供的命令或任意可执行路径。入口来自已校验 manifest；插件主 JAR 位于类路径首位。系统不安装 JVM，不注册独立程序，不创建快捷方式。
+SDK保留`PluginError.code`。标准错误包括参数错误、未知方法、缺权限、平台不支持、宿主过旧、插件停用、取消、超时、繁忙、超限、运行错误、授权拒绝/过期和开发模式关闭，完整枚举见合同。无法分类的旧宿主错误使用`E_HOST`，不返回宿主堆栈或凭证。
 
-宿主设置 `nous.plugin.root` 为当前账号的插件数据目录，`nous.engine.home` 为已校验模块目录。入口 main 从 UTF-8 stdin 每行读取 `{method,params}`，stdout 每行返回 `{value}` 或 `{error:"错误信息"}`。所有日志写 stderr，禁止在 stdout 输出诊断文字。一个进程对应一个账号和插件，串行处理请求；停用、升级或退出 Nous 时结束进程。插件需持久化可恢复任务，并在重新启动时恢复为可安全继续的状态。
+## 内置官方登录
 
-## Android Dex 模块
+`runtime.webLogin`使用隔离窗口，不注入Nous桥。参数包括`url, domains, cookieUrls, requiredCookies`；1.2增加按平台的`urls`、`userAgents`。Android默认使用移动UA、手机宽度和正常缩放，不沿用旧配置中的Windows UA。登录地址、Cookie读取和跳转必须属于显式声明的HTTPS域。
 
-外层 `.module.zip` 含 `module.apk`（仅作为 Dex/资源容器，不经过 PackageManager 安装）和可选 `lib/arm64-v8a/*.so`。清单无 Activity、Service 或独立 Application 入口。使用非宿主资源包 ID `0x80` 编译资源，避免与宿主 `0x7f` 冲突。
+可选`validation:{url,path,equals,nonEmpty?,userAgent?}`在Cookie稳定后执行只读GET；最大64KiB、8秒、失败最多每5秒重试。通过后才关闭窗口、返回`{cookie}`。验证请求UA可与登录页面UA分别声明，避免为了API兼容而把手机登录页伪装成电脑。
 
-宿主以 DexClassLoader 加载模块，以 API30 ResourcesLoader 加载其资源，解压代码设为只读。入口为公开的无参类：
+Windows会话只在内存中保存；Android清理所声明平台的域/路径Cookie，不清理Nous账户。取消、停用、卸载或10分钟超时结束流程。插件应再次验证凭证再保存，不把Cookie写入页面storage、日志、公开Release或Nous服务器。
+
+## 外部默认浏览器授权
+
+使用[OAuth Native Apps RFC8252](https://www.rfc-editor.org/rfc/rfc8252)的回环回调与[PKCE RFC7636](https://www.rfc-editor.org/rfc/rfc7636)。Windows与Android均绑定`127.0.0.1`的临时端口、随机回调路径、随机state、S256 challenge；打开系统默认浏览器。供应商必须支持公共客户端PKCE和动态回环回调，并为插件开发者登记合法client_id。
+
+```js
+if (NousPlugin.supports('auth.external.begin')) {
+  const result = await NousPlugin.authorize({
+    authorizationEndpoint:'https://你的供应商/authorize',
+    clientId:'你登记的公共客户端ID', scope:'所需权限'
+  }, {signal:controller.signal});
+  // result.code、codeVerifier、redirectUri立即交给自己的runtime模块换取凭证。
+  // 换取成功、验证账号后再保存；不要在页面storage中保留这些数据。
+}
+```
+
+`begin`返回sessionId、实际授权地址、redirectUri、expiresAt；`status`返回pending/success/cancelled/expired/error/consumed。成功的授权码和verifier只交付一次，最长10分钟；`cancel`关闭监听和清除秘密。state不匹配、错误路径、非回环Host或重复授权码都不能完成会话。回调页面不回显code、不缓存、不加载远程内容。进程重启或Activity销毁时未完成授权失效，需重新发起。
+
+授权成功后浏览器显示返回Nous的说明，数据已经自动回传，不需复制凭证。没有供应商回调、只有网页登录Cookie的平台不提供此方式；不得用打开网页登录页冒充已支持外部自动登录，不得读取其他浏览器的私有数据库。破晓下载器也遵守这个规则，只为已实现且验证过凭证交换的供应商显示外部入口。
+
+## Windows模块ABI
+
+模块ZIP包含`runtime/bin/java.exe`、完整独立runtime和`app/*.jar`。`runtime.windows-x64`声明`type:'jvm'`、入口类、可选`mainJar:'app/plugin.jar'`及asset。兼容旧包时mainJar默认`app/Nous-Engine.jar`；新插件可以自行命名，不依赖下载器。
+
+入口`main`读UTF-8 stdin，每行`{method,params}`，每行stdout返回`{value}`或`{error:'信息'}`。stdout不得混入日志，日志写stderr。一个账户/插件对应一个工作进程，请求串行。宿主设置`nous.plugin.root`为私有数据目录、`nous.engine.home`为模块目录。禁止依赖系统预装Java或旧服务器项目。
+
+## Android模块ABI
+
+ZIP包含`module.apk`和可选`lib/arm64-v8a/*.so`。APK仅是Dex/资源容器，不能包含独立Activity/Service/Application入口，不经PackageManager安装。编译Java17，minSdk30；使用非宿主资源包ID（示例0x81、宿主0x7f）。入口为公开无参类：
 
 ```java
 public void initialize(android.content.Context context,
-  java.util.function.BiFunction<String, org.json.JSONObject, Object> host);
-public Object execute(String method, org.json.JSONObject params) throws Exception;
+  java.util.function.BiFunction<String,org.json.JSONObject,Object> host);
+public Object execute(String method,org.json.JSONObject params) throws Exception;
 public void close() throws Exception;
 ```
 
-context 提供模块资源、类加载器和当前账号的私有目录/偏好；不能假设宿主内部组件、包名或路由。execute 在工作线程运行，返回 JSON 可序列化的类型。插件自己保存文件、凭证和业务状态；close 必须暂停任务、关闭数据库并取消协程。Android 已加载类的释放由系统管理，停用保证停止业务执行，不承诺立即从进程内存卸载 Dex。
+execute在工作线程运行，返回JSON可序列化类型。context为插件/账户提供私有files、cache、no-backup、数据库路径和偏好，以及模块Resources和ClassLoader；不要把它替换为宿主Application再存数据。类加载器以Android/宿主已有类优先，其余来自模块；不能假设主程序内部类或AndroidX内部实现属于公开ABI。依赖应由插件构建管理，避免以宿主包名声明自己的类。
 
-通用 host 回调包括 activity.current（用于原生模块的 Activity 生命周期接入）、directory.choose（系统目录选择器，返回持久授权的 URI 或 null）、file.open（打开插件文件/已授权 content URI）和 foreground.update（{text}，更新 Nous 的通用插件前台通知）。宿主只注册通用文件提供器和插件执行服务，业务服务不进入宿主源码。不要启动上游 Application 或把上游程序当成另一款应用安装。
+通用回调：`activity.current {}`返回当前Activity（仅原生进程内对象）；`directory.choose {}`返回具有持久授权的目录URI或null；`file.open {path}`打开插件私有文件或已授权content URI；`foreground.update {text}`更新通用前台服务通知。调用UI必须通过Activity主线程。文件打开不授予任意宿主私有文件访问能力。
 
-## 验证与兼容
+## 生命周期和数据
 
-测试平台与权限拒绝、资源越界、原生模块校验、不同账号的数据隔离、导航回退、升级保留数据、停用后拒绝调用、卸载、断网/超时/下载失败、实际任务的暂停与恢复。真实界面检查1440、768、390宽度和深色主题。开发预览不能替代原生设备验证；发布说明需区分已构建/已测试/未实机验证的内容。
+安装先校验协议、平台、权限、签名目录及包/模块摘要，再记录安装状态；失败不替换已有正常版本。更新新增权限须再次授权。升级保留插件数据，插件自行迁移自己的业务格式；应记录数据schema并支持迁移失败恢复。页面切换不等于停止原生后台任务。
 
-后续扩展增加通用 capability 与适配器，不把某个插件的 URL、模型、网盘名称或业务方法写入 Nous。插件业务协议在插件仓库维护，宿主只转发 opaque method/params。
+停用、卸载、升级停止原生模块并拒绝后续执行，取消登录和授权。Windows结束工作进程；Android调用close暂停任务、取消协程、关闭数据库，Dex内存由系统回收。退出Nous也停止进程内会话。卸载删除入口和页面storage，保留原生业务数据与下载文件；此行为应在插件UI说明。不同账户和插件不共用storage、偏好与数据库。可信原生代码不是安全沙箱，仍具有Nous设备权限。
 
-## 官方网页登录（Nous 1.0.2+）
+## 正式发布
 
-`runtime.webLogin` 使用 `native.runtime` 授权，在独立官方 HTTPS 页面登录并返回 `{cookie}`。参数为 `{url, domains, cookieUrls, requiredCookies}`：domains 为最多10个域名；登录、跳转和 Cookie 读取 URL 必须属于这些域；requiredCookies 是关键字段组合数组，任一组合全部存在即返回。插件必须再调用对应平台接口验证凭证，验证成功才保存。不得记录凭证、上传宿主服务器或写入页面存储。UI 应提供手动凭证作为兼容方式，并声明 requiresHost 1.0.2。
+1. 以自己的独立仓库和许可发布源码（许可证要求时必须提供对应源码）；不提交主程序源码、密钥或账号。
+2. 构建各平台模块，上传自己的GitHub Release。用`node sdk/module.mjs 工程 平台 模块ZIP GitHub资源URL`固定摘要和大小。
+3. 运行check、SDK合同测试与目标客户端验证，然后pack页面包；上传页面包和SHA256SUMS。Release资产发布后不得覆盖同版本字节。
+4. 用`node sdk/catalog-entry.mjs 页面包 GitHub页面包URL 条目.json`生成待审条目，在[Nous仓库](https://github.com/liveldy/Nous/issues/new)提交插件目录接入请求，附条目、许可、平台、验证记录及源码地址。维护者审核并用宿主发布密钥签入目录；开发者不需要也不应持有该私钥。
+5. 签名目录生效后，用户在插件管理中安装；所有正式模块和安装包只保存在GitHub，应用服务器不保存分发文件。
 
-Windows 使用独立内存浏览会话，禁止 Node、宿主桥、下载与越域顶层跳转；窗口关闭即清除会话。Android 使用无宿主 JS 桥的专用 WebView，登录前后只清理所声明平台的 Cookie，不清理 Nous 登录或其他站点数据。不读取其他应用的私有凭证数据库。停用、卸载和关闭登录窗口会取消请求。SDK 登录等待上限15分钟，宿主登录窗口10分钟超时。
-
-## 登录会话就绪校验（Nous 1.0.3+）
-
-`runtime.webLogin` 可声明 `userAgent`，以及 `validation: {url, path, equals, nonEmpty?}`。校验 URL 必须是已声明域内 HTTPS；只执行 GET，最多64KB、8秒超时。JSON 的 path 值与 equals 相等，且可选 nonEmpty 路径为非空字符串时，才返回凭证并关闭窗口。临时Cookie已出现但校验未通过时保留窗口，等待完成官方登录；Cookie稳定后请求，失败至多每5秒重试。插件负责再次校验与保存，宿主不包含任何网盘地址或业务字段。
-
-Windows 从专用会话收集声明域 Cookie，包含带路径限制和HTTP-only的字段；Android 从插件声明的多个具体URL收集并在结束时过期对应域/路径Cookie。只采集当前官方登录会话，不读取其他应用私有数据。
+正式发布前至少验证：协议不匹配拒绝、缺方法/缺权限拒绝、账号隔离、真实导航、断网/超时/错误、更新保留数据、停用与卸载、1440/768/390及深色模式；有原生模块时验证目标设备。构建成功、合同测试和实机通过是不同结论，应分别记录。公开SDK自测命令为`node --test sdk/test/*.test.mjs`。
