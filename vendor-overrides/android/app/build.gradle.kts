@@ -104,6 +104,10 @@ android {
     testOptions {
         // 单元测试中 android.util.Log 等桩方法返回默认值（否则一调用就抛 "Stub!"）
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = false
+        unitTests.all {
+            it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+        }
     }
 
     compileOptions {
@@ -154,6 +158,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     // 设置页目录选择器仪器测试：runner / JUnit 集成；Compose 测试库版本对齐现有 BOM
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
@@ -169,5 +174,6 @@ dependencies {
     }
 }
 android.sourceSets.getByName("main").java.srcDirs("../../../engine/shared/src", "../../../engine/android/src")
+android.sourceSets.getByName("test").java.srcDir("../../../test/android")
 
 android.androidResources.additionalParameters += listOf("--package-id", "0x80", "--allow-reserved-package-id")

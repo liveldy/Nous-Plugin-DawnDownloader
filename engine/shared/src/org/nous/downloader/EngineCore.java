@@ -22,6 +22,8 @@ public final class EngineCore {
  private final Map<String,Set<String>> allowed=new HashMap<>();
  private final Set<String> properties=new LinkedHashSet<>(Arrays.asList("downloadThreads","maxConcurrentDownloads","downloadDirUri","downloadSpeedLimit","downloadRetryCount","quarkNoSaveDownload","multiAccountDownload","multiSourceDownload","directWriteSingleThread","directWriteMultiThread","http2Enabled","downloadEngine","keepAwakeWhileDownloading","keepDownloadWhenLocked","notificationShowSpeed","githubMirrorPrefix"));
  private volatile long proxyChecked;private String proxySignature="";
+ private String lastVideoInput="";
+ private boolean android(){return platform.context()!=null;}
 
  public EngineCore(Platform platform)throws Exception{
   this.platform=platform;
@@ -73,7 +75,7 @@ public final class EngineCore {
   if(type.equals("XunleiResolveRepository")&&parameter==Function2.class)return (Function2<String,Object,Object>)(token,continuation)->{try{for(Object account:(Iterable<?>)call(get("com.yunx.app.data.repository.XunleiAccountRepository"),"getAccounts",new JSONArray()))if(Objects.equals(token,call(account,"getAccessToken",new JSONArray())))return account;return null;}catch(Exception e){throw new RuntimeException(e);}};
   if((type.equals("XunleiResolveRepository")||type.equals("XunleiCloudViewModel"))&&parameter==Function1.class)return (Function1<Object,Object>)(continuation)->{try{if(index==4&&type.equals("XunleiResolveRepository"))return refreshXunlei();return accountField("xunlei",index==1?"accessToken":index==2?"deviceId":"captchaToken");}catch(Exception e){throw new RuntimeException(e);}};
   if(type.equals("Pan123ResolveRepository")||type.equals("GuangYaResolveRepository"))return (Function1<Object,Object>)(continuation)->{try{return credential(type.startsWith("Pan123")?"pan123":"guangya");}catch(Exception e){throw new RuntimeException(e);}};
-  if(type.equals("ResolveViewModel")&&parameter.getSimpleName().equals("Function0")){if(index==24)return (Function0<String>)()->String.valueOf(setting("githubMirrorPrefix",""));if(index==25)return (Function0<Boolean>)()->(Boolean)setting("quarkNoSaveDownload",true);if(index==26)return (Function0<Boolean>)()->(Boolean)setting("multiAccountDownload",false);if(index==27)return (Function0<Boolean>)()->(Boolean)setting("multiSourceDownload",false);}
+  if(type.equals("ResolveViewModel")&&parameter==Function0.class){int n=index+(android()?1:0);if(n==24)return (Function0<String>)()->String.valueOf(setting("githubMirrorPrefix",""));if(n==25)return (Function0<Boolean>)()->(Boolean)setting("quarkNoSaveDownload",true);if(n==26)return (Function0<Boolean>)()->(Boolean)setting("multiAccountDownload",false);if(n==27)return (Function0<Boolean>)()->(Boolean)setting("multiSourceDownload",false);}
   if(type.endsWith("CloudViewModel")||type.endsWith("CoudViewModel")){
    if(parameter.getSimpleName().equals("Function1"))return (Function1<Object,Object>)(continuation)->{try{return credential(model.split(":")[1]);}catch(Exception e){throw new RuntimeException(e);}};
   }
@@ -105,7 +107,7 @@ public final class EngineCore {
  private Object model(String name)throws Exception{
   if(models.containsKey(name))return models.get(name);String className;
   if(name.equals("resolve"))className="ResolveViewModel";
-  else if(name.equals("video"))className="VideoResolveViewModel";
+  else if(name.equals("video"))className=android()?"ResolveViewModel":"VideoResolveViewModel";
   else{String[] parts=name.split(":");if(parts.length!=2)throw new IOException("未知业务页面");String p=prefix(parts[1]);className=p+(parts[0].equals("cloud")?(p.equals("UC")?"CoudViewModel":"CloudViewModel"):"AccountViewModel");}
   Object m=construct(cls("com.yunx.app.ui.viewmodel."+className),name);models.put(name,m);return m;
  }
@@ -113,8 +115,16 @@ public final class EngineCore {
   syncProxy();
   switch(method){
    case "bootstrap":{JSONArray providers=new JSONArray();for(String drive:drives.keySet())providers.put(new JSONObject().put("id",drive).put("name",labels.get(drive)).put("accounts",accounts(drive)).put("login",loginType(drive)));return new JSONObject().put("providers",providers).put("settings",settings()).put("downloads",downloads()).put("protocol","1.1");}
-   case "vm.snapshot":return snapshot(model(p.getString("model")));
-   case "vm.call":{String name=p.getString("model"),kind=name.contains(":")?name.split(":")[0]:name,action=p.getString("action");if(!allowed.getOrDefault(kind,Collections.emptySet()).contains(action))throw new IOException("未声明的插件业务操作");if(name.equals("video")&&action.equals("resolve"))platform.prepareVideo(p.optJSONArray("args")==null?"":p.getJSONArray("args").optString(0));if(name.equals("account:baidu")&&(action.equals("saveBaiduAccount")||action.equals("logout"))){clearBaiduSession();if(action.equals("saveBaiduAccount")){Object token=call(get("com.yunx.app.data.network.BaiduApi"),"getBdstoken",new Object[]{p.getJSONArray("args").getString(0)});if(token==null||token.toString().isEmpty())throw new IOException("百度登录尚未完成或凭证已失效，请在官方网页完成登录后重试");}}Object m=model(name),result=call(m,action,p.optJSONArray("args")==null?new JSONArray():p.getJSONArray("args"));return new JSONObject().put("result",json(result,0)).put("state",snapshot(m));}
+   case "vm.snapshot":return snapshotFor(p.getString("model"),model(p.getString("model")));
+   case "vm.call":{
+    String name=p.getString("model"),kind=name.contains(":")?name.split(":")[0]:name,action=p.getString("action");
+    if(!allowed.getOrDefault(kind,Collections.emptySet()).contains(action))throw new IOException("未声明的插件业务操作");
+    JSONArray args=p.optJSONArray("args")==null?new JSONArray():p.getJSONArray("args");
+    if(name.equals("video")&&(action.equals("resolve")||action.equals("retry"))){if(action.equals("resolve"))lastVideoInput=args.optString(0);platform.prepareVideo(lastVideoInput);if(android()){action="startVideoResolve";args=new JSONArray().put(lastVideoInput);}}
+    if(name.equals("video")&&android()&&action.equals("reset"))action="backToInput";
+    if(name.equals("account:baidu")&&(action.equals("saveBaiduAccount")||action.equals("logout"))){clearBaiduSession();if(action.equals("saveBaiduAccount")){Object token=call(get("com.yunx.app.data.network.BaiduApi"),"getBdstoken",new Object[]{args.getString(0)});if(token==null||token.toString().isEmpty())throw new IOException("百度登录尚未完成或凭证已失效，请在官方网页完成登录后重试");}}
+    Object m=model(name),result=call(m,action,args);return new JSONObject().put("result",json(result,0)).put("state",snapshotFor(name,m));
+   }
    case "accounts.list":return accounts(p.getString("provider"));
    case "accounts.action":{String drive=p.getString("provider"),action=p.getString("action");if(!Arrays.asList("setPrimary","updateRemark","deleteById").contains(action))throw new IOException("未知账户操作");if(drive.equals("baidu")&&!action.equals("updateRemark"))clearBaiduSession();Object dao=get("com.yunx.app.data.db."+prefix(drive)+"AccountDao");JSONArray args=new JSONArray().put(p.getString("id"));if(action.equals("updateRemark"))args.put(p.optString("remark"));call(dao,action,args);return accounts(drive);}
    case "settings.get":return settings();
@@ -127,7 +137,18 @@ public final class EngineCore {
    case "cloud.share":{Object cloud=model("cloud:"+p.getString("provider"));for(Method m:cloud.getClass().getMethods())if(m.getName().equals("shareFile")){Object[] values=new Object[m.getParameterCount()];call(cloud,"shareFile",values);return snapshot(cloud);}throw new IOException("此网盘不支持分享");}
    case "video.accounts":return json(first(call(get("com.yunx.app.data.repository.VideoAccountRepository"),"observeAccounts",new JSONArray())),0);
    case "video.account.action":{Object repo=get("com.yunx.app.data.repository.VideoAccountRepository");if(p.getString("action").equals("save"))return json(call(repo,"save",new JSONArray().put(p.getString("platform")).put(p.getString("cookie")).put(true)),0);if(p.getString("action").equals("remove")){call(repo,"remove",new JSONArray().put(p.getString("id")));return true;}throw new IOException("未知视频账户操作");}
-   case "video.download":{Object result=reference(p.getString("result")),media=reference(p.getString("media"));Object helper=get("com.yunx.app.data.download.VideoDownloads");String file=String.valueOf(call(helper,"fileNameFor",new Object[]{result,media,p.optInt("index"),p.optInt("total",1)}));Object url=call(media,"getUrl",new JSONArray()),headers=call(media,"getHeaders",new JSONArray());Object id=call(get("com.yunx.app.data.download.DownloadManager"),"enqueue",new Object[]{url,file,headers,call(media,"getSize",new JSONArray()),"video",call(result,"getUrl",new JSONArray()),"",Collections.emptyList(),"",call(media,"getAudioUrl",new JSONArray()),call(media,"getAudioHeaders",new JSONArray()),call(media,"getMotionUrl",new JSONArray())});return new JSONObject().put("id",id);}
+   case "video.download":{
+    Object result=reference(p.getString("result")),media=reference(p.getString("media"));
+    if(!((List<?>)call(result,"getMedias",new JSONArray())).contains(media))throw new IOException("媒体不属于当前解析结果，请重新解析");
+    Object url=call(media,"getUrl",new JSONArray()),headers=call(media,"getHeaders",new JSONArray());String file;
+    if(android()){
+     file=String.valueOf(call(media,"getFileName",new JSONArray()));
+     if(file.trim().isEmpty()){String title=String.valueOf(call(result,"getTitle",new JSONArray())).replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]","_");if(title.length()>80)title=title.substring(0,80);String kind=String.valueOf(call(media,"getKind",new JSONArray()));file=title+"_"+(p.optInt("index")+1)+(kind.equals("IMAGE")?".jpg":kind.equals("AUDIO")?".m4a":".mp4");}
+     Object id=call(get("com.yunx.app.data.download.DownloadManager"),"enqueue",new Object[]{url,file,headers,call(media,"getSize",new JSONArray()),"video","",Collections.emptyList(),call(media,"getAudioUrl",new JSONArray()),call(media,"getAudioHeaders",new JSONArray()),call(media,"getMotionUrl",new JSONArray())});
+     return new JSONObject().put("id",id);
+    }
+    Object helper=get("com.yunx.app.data.download.VideoDownloads");file=String.valueOf(call(helper,"fileNameFor",new Object[]{result,media,p.optInt("index"),p.optInt("total",1)}));Object id=call(get("com.yunx.app.data.download.DownloadManager"),"enqueue",new Object[]{url,file,headers,call(media,"getSize",new JSONArray()),"video",call(result,"getUrl",new JSONArray()),"",Collections.emptyList(),"",call(media,"getAudioUrl",new JSONArray()),call(media,"getAudioHeaders",new JSONArray()),call(media,"getMotionUrl",new JSONArray())});return new JSONObject().put("id",id);
+   }
    case "history.list":return json(first(call(get("com.yunx.app.data.db.LinkHistoryDao"),"observeAll",new JSONArray())),0);
    case "cache.info":return new JSONObject().put("bytes",sizeOf(new File(platform.root(),"cache"))).put("path",new File(platform.root(),"cache").getAbsolutePath());
    default:throw new IOException("未知插件引擎方法："+method);
@@ -149,6 +170,7 @@ public final class EngineCore {
   for(Method m:cls("kotlinx.coroutines.flow.FlowKt").getMethods())if(m.getName().equals("first")&&m.getParameterCount()==2)return suspendInvoke(m,null,new Object[]{flow,null},1);
   throw new IOException("无法读取下载状态");
  }
+ private JSONObject snapshotFor(String name,Object vm)throws Exception{JSONObject out=snapshot(vm);if(android()&&name.equals("video")){JSONObject state=out.optJSONObject("uiState");if(state!=null&&state.optString("type").equals("Video"))state.put("type","Success");}return out;}
  private JSONObject snapshot(Object vm)throws Exception{JSONObject out=new JSONObject();for(Method m:vm.getClass().getMethods()){String n=m.getName();if(m.getParameterCount()!=0||(!n.startsWith("get")&&!n.startsWith("is"))||n.equals("getClass")||n.equals("getViewModelScope"))continue;String key=n.startsWith("is")?Character.toLowerCase(n.charAt(2))+n.substring(3):Character.toLowerCase(n.charAt(3))+n.substring(4);try{Object v=m.invoke(vm);if(v!=null&&implementsFlow(v.getClass()))v=first(v);out.put(key,json(v,0));}catch(Exception ignored){}}return out;}
  private boolean implementsFlow(Class<?> t){if(t==null)return false;for(Class<?> i:t.getInterfaces())if(i.getName().startsWith("kotlinx.coroutines.flow.")||implementsFlow(i))return true;return implementsFlow(t.getSuperclass());}
  private Object reference(String id)throws IOException{Object v=references.get(id);if(v==null)throw new IOException("文件列表已过期，请刷新后重试");return v;}
@@ -193,6 +215,6 @@ public final class EngineCore {
  private static String capitalize(String value){return Character.toUpperCase(value.charAt(0))+value.substring(1);}
  private static Exception problem(Throwable e){return e instanceof Exception?(Exception)e:new IOException(e.toString(),e);}
  private static long sizeOf(File file){if(!file.exists())return 0;if(file.isFile())return file.length();long n=0;File[] children=file.listFiles();if(children!=null)for(File f:children)n+=sizeOf(f);return n;}
- public synchronized void close()throws Exception{Object manager=objects.get(cls("com.yunx.app.data.download.DownloadManager"));if(manager!=null){Object tasks=first(call(manager,"getTasks",new JSONArray()));if(tasks instanceof Iterable)for(Object task:(Iterable<?>)tasks)call(manager,"pause",new Object[]{call(task,"getId",new JSONArray())});}for(Object value:objects.values())for(Field field:value.getClass().getDeclaredFields())if(field.getType().getName().equals("kotlinx.coroutines.CoroutineScope")){try{field.setAccessible(true);Object scope=field.get(value);if(scope!=null)for(Method method:cls("kotlinx.coroutines.CoroutineScopeKt").getMethods())if(method.getName().equals("cancel")&&method.getParameterCount()==2){method.invoke(null,scope,null);break;}}catch(Exception ignored){}}Object db=objects.get(cls("com.yunx.app.data.db.AppDatabase"));if(db!=null)try{call(db,"close",new JSONArray());}catch(Exception ignored){}references.clear();referenceIds.clear();}
+ public synchronized void close()throws Exception{for(Object vm:models.values())try{Object scope=cls("androidx.lifecycle.ViewModelKt").getMethod("getViewModelScope",cls("androidx.lifecycle.ViewModel")).invoke(null,vm);cls("kotlinx.coroutines.CoroutineScopeKt").getMethod("cancel",cls("kotlinx.coroutines.CoroutineScope"),java.util.concurrent.CancellationException.class).invoke(null,scope,null);}catch(Exception ignored){}Object manager=objects.get(cls("com.yunx.app.data.download.DownloadManager"));if(manager!=null){Object tasks=first(call(manager,"getTasks",new JSONArray()));if(tasks instanceof Iterable)for(Object task:(Iterable<?>)tasks)call(manager,"pause",new Object[]{call(task,"getId",new JSONArray())});}for(Object value:objects.values())for(Field field:value.getClass().getDeclaredFields())if(field.getType().getName().equals("kotlinx.coroutines.CoroutineScope")){try{field.setAccessible(true);Object scope=field.get(value);if(scope!=null)for(Method method:cls("kotlinx.coroutines.CoroutineScopeKt").getMethods())if(method.getName().equals("cancel")&&method.getParameterCount()==2){method.invoke(null,scope,null);break;}}catch(Exception ignored){}}Object db=objects.get(cls("com.yunx.app.data.db.AppDatabase"));if(db!=null)try{call(db,"close",new JSONArray());}catch(Exception ignored){}references.clear();referenceIds.clear();}
  private void syncProxy(){if(platform.context()!=null||System.currentTimeMillis()-proxyChecked<5000)return;proxyChecked=System.currentTimeMillis();try{Object system=get("com.yunx.app.data.network.SystemProxy"),info=call(system,"inspect",new JSONArray());String host="";int port=0;if(info.getClass().getSimpleName().equals("Proxy")){host=String.valueOf(call(info,"getHost",new JSONArray()));port=((Number)call(info,"getPort",new JSONArray())).intValue();}String next=host+":"+port;if(!next.equals(proxySignature)){call(get("com.yunx.app.data.network.HttpClients"),"setProxy",new JSONArray().put(host.isEmpty()?JSONObject.NULL:host).put(port));proxySignature=next;}}catch(Exception ignored){}}
 }

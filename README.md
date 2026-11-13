@@ -1,4 +1,4 @@
-# 全能下载器 · Nous 插件 1.1.4
+# 全能下载器 · Nous 插件 1.1.5
 
 在 Nous 内完成网盘分享解析、网盘文件管理、视频/图文解析和下载任务管理。插件直接复用 [YunX](https://github.com/CYQawa/YunX) 与 [YunX-Desktop](https://github.com/tidain/YunX-Desktop) 的业务层，并提供适配 Nous 的界面。
 
@@ -59,3 +59,10 @@ Android 工具链使用 SDK36/BuildTools36，Gradle8.13，依赖和插件版本�
 构建两个平台模块后，可运行 `python test/run-network.py`。它使用最终 Java17 模块中的真实 API 类与 Android 编译后的真实仓库字节码，验证短页分页、重复页、失败页、账户令牌隔离、无效凭证拒绝及目录引用往返。HTTP 响应是明确的测试夹具，不使用任何真实账户凭证。
 
 1.1.4 补齐账户下拉切换后的状态刷新，确保界面选中项和实际主账户一致。运行模块沿用已校验的 1.1.3 组件。
+
+
+## 1.1.5 Android 适配修复
+
+Android 视频使用上游 ResolveViewModel 的 startVideoResolve，独立保存网盘与视频状态，统一输出视频结果格式；下载直接调用 Android DownloadManager，保留音轨、请求头与动态照片参数。修正 Android 解析设置回调位置、视频错误重试页面和插件停用时的 ViewModel 协程清理。Windows 保持原视频模型与 JCEF 流程。
+
+Android 业务回归使用实际 Android 类与 Robolectric API35，独立于桌面实现；命令：在 vendor/android 下运行 gradle testReleaseUnitTest --tests org.nous.downloader.AndroidEngineContractTest。测试仅依赖模拟 Android 系统、人工网络响应，不代表实机验证。需要 Nous 1.0.3 及以上；建议 1.0.4，以正确识别本机版本并阻止旧客户端调用不支持的方法。

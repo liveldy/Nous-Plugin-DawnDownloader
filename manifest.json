@@ -2,7 +2,7 @@
   "id": "app.nous.universal-downloader",
   "name": "全能下载器",
   "description": "在 Nous 内解析网盘分享、管理网盘文件与下载任务。",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "api": "1.1",
   "platforms": [
     "windows-x64",
@@ -54,9 +54,9 @@
       "type": "jvm",
       "entry": "org.nous.downloader.PluginMain",
       "asset": {
-        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.1.3/downloader-windows-x64.module.zip",
-        "sha256": "b95a3983fe87e060c4c6d7f525b010bcfbd01d32dbc48893d469cd38f6891923",
-        "bytes": 220227145
+        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.1.5/downloader-windows-x64.module.zip",
+        "sha256": "a3b774a81517c37f5f871109fd4a0f49c1d11bcc069fa638ced46a3f2ec045ea",
+        "bytes": 220228019
       }
     },
     "android-arm64": {
@@ -64,9 +64,9 @@
       "entry": "org.nous.downloader.AndroidPlugin",
       "minSdk": 30,
       "asset": {
-        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.1.3/downloader-android-arm64.module.zip",
-        "sha256": "4bd189dea60d7a7bbd916c56e302cf5c9ec264bd879a080fd98e04697653a80a",
-        "bytes": 22095406
+        "url": "https://github.com/liveldy/Nous-Plugin-YunX/releases/download/v1.1.5/downloader-android-arm64.module.zip",
+        "sha256": "32ae8f22ecba8436a924e01b069d7bc44f0c444f7903f42409e171a828553661",
+        "bytes": 22096018
       }
     }
   }
